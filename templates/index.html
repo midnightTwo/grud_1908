@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nitro Promo Monitor</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%235865f2'/><text y='.9em' x='50' text-anchor='middle' font-size='70'>🔍</text></svg>">
+    <style>
+        :root {
+            --bg: #111214; --surface: #1e1f22; --surface2: #2b2d31;
+            --border: #3f4147; --text: #dbdee1; --muted: #949ba4;
+            --brand: #5865f2; --brand-dark: #4752c4;
+            --green: #57f287; --yellow: #fee75c; --red: #ed4245; --pink: #eb459e;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui,sans-serif; }
+
+        /* ── HEADER ── */
+        .topbar {
+            background:var(--surface); border-bottom:1px solid var(--border);
+            padding:12px 20px; display:flex; align-items:center; justify-content:space-between;
+            flex-wrap:wrap; gap:10px; position:sticky; top:0; z-index:100;
+        }
+        .topbar h1 { font-size:18px; color:var(--brand); display:flex; align-items:center; gap:8px; }
+        .live-dot { width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 2s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+        .topbar-right { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+        .topbar-right .meta { font-size:12px; color:var(--muted); }
+
+        /* ── BUTTONS ── */
+        .btn {
+            border:none; padding:7px 14px; border-radius:4px; cursor:pointer;
+            font-size:12px; font-weight:600; transition:.15s; color:#fff;
+        }
+        .btn-brand { background:var(--brand); }
+        .btn-brand:hover { background:var(--brand-dark); }
+        .btn-red { background:var(--red); }
+        .btn-red:hover { background:#c73c3e; }
+        .btn-outline { background:transparent; border:1px solid var(--border); color:var(--text); }
+        .btn-outline:hover { background:var(--surface2); }
+        .btn-sm { padding:4px 10px; font-size:11px; }
+        .btn:disabled { opacity:.5; cursor:default; }
+
+        .container { max-width:1100px; margin:0 auto; padding:16px; }
+
+        /* ── STATS ── */
+        .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:8px; margin-bottom:16px; }
+        .stat { background:var(--surface); border-radius:8px; padding:14px; text-align:center; border:1px solid var(--border); }
+        .stat .n { font-size:28px; font-weight:700; }
+        .stat .l { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-top:2px; }
+        .stat.s-valid .n{color:var(--green)} .stat.s-redeemed .n{color:var(--yellow)}
+        .stat.s-invalid .n{color:var(--red)} .stat.s-pending .n{color:var(--muted)}
+        .stat.s-error .n{color:var(--pink)} .stat.s-total .n{color:var(--brand)}
+
+        /* ── ADD CODES PANEL ── */
+        .add-panel {
+            background:var(--surface); border:1px solid var(--border); border-radius:8px;
+            padding:16px; margin-bottom:16px;
+        }
+        .add-panel h3 { font-size:14px; margin-bottom:8px; color:var(--brand); }
+        .add-panel textarea {
+            width:100%; height:120px; background:var(--bg); color:var(--text); border:1px solid var(--border);
+            border-radius:6px; padding:10px; font-family:'Consolas',monospace; font-size:12px;
+            resize:vertical; outline:none;
+        }
+        .add-panel textarea:focus { border-color:var(--brand); }
+        .add-panel textarea::placeholder { color:var(--muted); }
+        .add-bar { display:flex; gap:8px; margin-top:8px; align-items:center; }
+        .add-bar .result { font-size:12px; color:var(--muted); }
+
+        /* ── PROOF BANNER ── */
+        .proof-banner {
+            background:var(--surface); border:1px solid var(--brand); border-radius:6px;
+            padding:8px 14px; margin-bottom:16px; font-size:11px; color:var(--muted);
+            display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;
+        }
+        .proof-banner strong { color:var(--brand); }
+
+        /* ── TABLE ── */
+        .section-title { font-size:13px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; }
+        .tbl-wrap { overflow-x:auto; margin-bottom:20px; }
+        table { width:100%; border-collapse:collapse; }
+        th, td { padding:8px 10px; text-align:left; border-bottom:1px solid var(--border); font-size:12px; }
+        th { background:var(--surface); color:var(--muted); font-weight:600; text-transform:uppercase; font-size:10px; letter-spacing:.5px; position:sticky; top:54px; z-index:10; }
+        tr:hover td { background:var(--surface2); }
+        .mono { font-family:'Consolas',monospace; font-size:11px; }
+
+        .badge {
+            display:inline-block; padding:2px 8px; border-radius:10px;
+            font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.5px;
+        }
+        .badge.valid{background:rgba(87,242,135,.12);color:var(--green)}
+        .badge.redeemed{background:rgba(254,231,92,.12);color:var(--yellow)}
+        .badge.invalid{background:rgba(237,66,69,.12);color:var(--red)}
+        .badge.error,.badge.rate_limited{background:rgba(235,69,158,.12);color:var(--pink)}
+        .badge.pending{background:rgba(148,155,164,.12);color:var(--muted)}
+        .badge.added{background:rgba(88,101,242,.12);color:var(--brand)}
+        .badge.removed{background:rgba(237,66,69,.12);color:var(--red)}
+        .badge.status_change{background:rgba(254,231,92,.12);color:var(--yellow)}
+
+        .del-btn { cursor:pointer; color:var(--red); font-weight:700; opacity:.6; transition:.15s; background:none; border:none; font-size:14px; }
+        .del-btn:hover { opacity:1; }
+
+        .highlight { animation: flash 3s ease; }
+        @keyframes flash { 0%{background:rgba(254,231,92,.25)} 100%{background:transparent} }
+
+        /* ── EVENTS LOG ── */
+        .events-box {
+            background:var(--surface); border:1px solid var(--border); border-radius:8px;
+            max-height:420px; overflow-y:auto;
+        }
+        .ev-row {
+            padding:8px 12px; border-bottom:1px solid var(--border);
+            font-size:12px; display:flex; gap:10px; align-items:flex-start;
+        }
+        .ev-row:last-child { border-bottom:none; }
+        .ev-time { color:var(--muted); font-family:'Consolas',monospace; font-size:10px; white-space:nowrap; min-width:150px; }
+        .ev-body { flex:1; }
+        .ev-hash { font-family:'Consolas',monospace; font-size:9px; color:var(--muted); opacity:.5; max-width:120px; word-break:break-all; }
+        .ev-arrow { color:var(--brand); font-weight:700; }
+
+        .empty { text-align:center; padding:30px; color:var(--muted); font-size:13px; }
+
+        /* ── MODAL ── */
+        .modal-bg {
+            display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:999;
+            justify-content:center; align-items:center;
+        }
+        .modal-bg.open { display:flex; }
+        .modal {
+            background:var(--surface); border:1px solid var(--border); border-radius:10px;
+            padding:20px; max-width:600px; width:95%; max-height:80vh; overflow-y:auto;
+        }
+        .modal h3 { margin-bottom:12px; color:var(--brand); }
+        .modal .close-btn { float:right; background:none; border:none; color:var(--muted); font-size:20px; cursor:pointer; }
+
+        /* ── RESPONSIVE ── */
+        @media(max-width:700px) {
+            .topbar { padding:10px; }
+            .container { padding:10px; }
+            .ev-row { flex-direction:column; gap:4px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="topbar">
+    <h1><span class="live-dot" id="liveDot"></span> Nitro Promo Monitor</h1>
+    <div class="topbar-right">
+        <span class="meta">Обновление: <b id="countdown" class="mono">--</b>с</span>
+        <span class="meta">|</span>
+        <span class="meta">Проверка: <b id="lastCheck">—</b></span>
+        <span class="meta" id="checkingLabel" style="display:none;color:var(--yellow)">⟳ Checking...</span>
+        <button class="btn btn-brand" onclick="forceCheck()" id="btnCheck">Проверить сейчас</button>
+        <button class="btn btn-outline" onclick="downloadProof()">📥 Скачать пруф</button>
+    </div>
+</div>
+
+<div class="container">
+
+    <!-- Proof watermark -->
+    <div class="proof-banner">
+        <div><strong>PROOF DASHBOARD</strong> — каждое изменение логируется с SHA-256 хешем. Скриншот = доказательство.</div>
+        <div class="mono" id="watermark"></div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats">
+        <div class="stat s-total"><div class="n" id="sTotal">-</div><div class="l">Всего</div></div>
+        <div class="stat s-valid"><div class="n" id="sValid">-</div><div class="l">Активны</div></div>
+        <div class="stat s-redeemed"><div class="n" id="sRedeemed">-</div><div class="l">Использованы</div></div>
+        <div class="stat s-invalid"><div class="n" id="sInvalid">-</div><div class="l">Невалидны</div></div>
+        <div class="stat s-pending"><div class="n" id="sPending">-</div><div class="l">Ожидает</div></div>
+        <div class="stat s-error"><div class="n" id="sError">-</div><div class="l">Ошибки</div></div>
+    </div>
+
+    <!-- Add codes panel -->
+    <div class="add-panel">
+        <h3>➕ Добавить промо-коды (вставь пачкой)</h3>
+        <textarea id="addInput" placeholder="Вставь ссылки сюда — по одной на строку:
+promos.discord.gg/hzfFNKTy35ReKBPxe77J48aE
+promos.discord.gg/4NYNucTaWF874s7fUNQUjX6H
+...или просто коды:
+hzfFNKTy35ReKBPxe77J48aE"></textarea>
+        <div class="add-bar">
+            <button class="btn btn-brand" onclick="addCodes()" id="btnAdd">Добавить</button>
+            <button class="btn btn-red btn-sm" onclick="clearAll()">Удалить все коды</button>
+            <span class="result" id="addResult"></span>
+        </div>
+    </div>
+
+    <!-- Codes table -->
+    <div class="section-title">Промо-коды (<span id="codeCount">0</span>)</div>
+    <div class="tbl-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Промо-ссылка</th>
+                    <th>Статус</th>
+                    <th>Кто активировал</th>
+                    <th>User ID</th>
+                    <th>Добавлен</th>
+                    <th>Проверен</th>
+                    <th>Лог</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="codesBody">
+                <tr><td colspan="9" class="empty">Нет кодов — добавь выше ↑</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Events log -->
+    <div class="section-title">Лог изменений (доказательства)</div>
+    <div class="events-box" id="eventsBox">
+        <div class="empty">Нет событий</div>
+    </div>
+</div>
+
+<!-- Per-code history modal -->
+<div class="modal-bg" id="modalBg" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+        <button class="close-btn" onclick="closeModal()">✕</button>
+        <h3 id="modalTitle">История кода</h3>
+        <div id="modalBody"></div>
+    </div>
+</div>
+
+<script>
+const REFRESH = 3;
+let cd = REFRESH;
+let allData = null;
+
+// ── API helpers ──
+async function api(url, opts) {
+    const r = await fetch(url, opts);
+    return r.json();
+}
+
+async function fetchData() {
+    try {
+        allData = await api('/api/status');
+        render(allData);
+        document.getElementById('liveDot').style.background = 'var(--green)';
+    } catch(e) {
+        document.getElementById('liveDot').style.background = 'var(--red)';
+    }
+}
+
+async function addCodes() {
+    const txt = document.getElementById('addInput').value.trim();
+    if (!txt) return;
+    document.getElementById('btnAdd').disabled = true;
+    try {
+        const res = await api('/api/codes', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({text: txt})
+        });
+        if (res.error) {
+            document.getElementById('addResult').textContent = '⚠ ' + res.error;
+        } else {
+            document.getElementById('addResult').textContent =
+                `✅ Добавлено: ${res.added}, дубликатов: ${res.duplicates}`;
+            document.getElementById('addInput').value = '';
+            setTimeout(fetchData, 1000);
+        }
+    } catch(e) {
+        document.getElementById('addResult').textContent = '❌ Ошибка: ' + e.message;
+    }
+    document.getElementById('btnAdd').disabled = false;
+}
+
+async function deleteCode(code) {
+    if (!confirm(`Удалить код ${code}?`)) return;
+    await api('/api/codes', {
+        method:'DELETE', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({codes: [code]})
+    });
+    fetchData();
+}
+
+async function clearAll() {
+    if (!confirm('Удалить ВСЕ коды? Лог сохранится.')) return;
+    await api('/api/codes/clear', {method:'POST'});
+    fetchData();
+}
+
+async function forceCheck() {
+    document.getElementById('btnCheck').disabled = true;
+    await api('/api/check-now', {method:'POST'});
+    document.getElementById('btnCheck').disabled = false;
+    setTimeout(fetchData, 2000);
+}
+
+function downloadProof() { window.open('/api/proof','_blank'); }
+
+async function showCodeHistory(code) {
+    document.getElementById('modalTitle').textContent = 'История: promos.discord.gg/' + code;
+    document.getElementById('modalBody').innerHTML = '<div class="empty">Загрузка...</div>';
+    document.getElementById('modalBg').classList.add('open');
+    const events = await api('/api/events/' + code);
+    if (!events.length) {
+        document.getElementById('modalBody').innerHTML = '<div class="empty">Нет событий для этого кода</div>';
+        return;
+    }
+    let html = '<table style="width:100%">';
+    html += '<tr><th>Время</th><th>Событие</th><th>Детали</th><th>Hash</th></tr>';
+    events.forEach(ev => {
+        const t = ev.timestamp ? msk(ev.timestamp) : '?';
+        const typ = ev.type || '?';
+        let detail = '';
+        if (ev.new_status === 'REDEEMED' && ev.redeemed_by_username) {
+            detail = `Активировал: <b>${esc(ev.redeemed_by_username)}</b> (${esc(ev.redeemed_by_id||'')})`;
+        } else {
+            detail = `${ev.old_status||'—'} → ${ev.new_status||'—'}`;
+        }
+        const hash = ev.proof_hash ? ev.proof_hash.substring(0,12)+'…' : '';
+        html += `<tr>
+            <td class="mono" style="font-size:10px;white-space:nowrap">${t}</td>
+            <td><span class="badge ${typ.toLowerCase()}">${typ}</span></td>
+            <td style="font-size:11px">${detail}</td>
+            <td class="mono" style="font-size:9px;color:var(--muted)">${hash}</td>
+        </tr>`;
+    });
+    html += '</table>';
+    document.getElementById('modalBody').innerHTML = html;
+}
+
+function closeModal() { document.getElementById('modalBg').classList.remove('open'); }
+
+// ── Render ──
+function render(d) {
+    document.getElementById('lastCheck').textContent = d.last_check;
+    document.getElementById('checkingLabel').style.display = d.checking_now ? 'inline' : 'none';
+    document.getElementById('sTotal').textContent = d.total_codes;
+    document.getElementById('sValid').textContent = d.stats.valid;
+    document.getElementById('sRedeemed').textContent = d.stats.redeemed;
+    document.getElementById('sInvalid').textContent = d.stats.invalid;
+    document.getElementById('sPending').textContent = d.stats.pending;
+    document.getElementById('sError').textContent = d.stats.error;
+    document.getElementById('codeCount').textContent = d.total_codes;
+
+    const tbody = document.getElementById('codesBody');
+    if (!d.codes.length) {
+        tbody.innerHTML = '<tr><td colspan="9" class="empty">Нет кодов — добавь выше ↑</td></tr>';
+    } else {
+        tbody.innerHTML = '';
+        d.codes.forEach((c, i) => {
+            const st = (c.status||'pending').toLowerCase();
+            const user = c.redeemed_by_username || '—';
+            const uid = c.redeemed_by_id || '—';
+            const added = c.added_at ? msk(c.added_at) : '—';
+            const checked = c.checked_at ? msk(c.checked_at) : '—';
+            const cls = c.status === 'REDEEMED' ? ' class="highlight"' : '';
+            tbody.innerHTML += `<tr${cls}>
+                <td>${i+1}</td>
+                <td class="mono">promos.discord.gg/${esc(c.code)}</td>
+                <td><span class="badge ${st}">${c.status||'PENDING'}</span></td>
+                <td>${esc(user)}</td>
+                <td class="mono" style="font-size:10px">${esc(uid)}</td>
+                <td style="font-size:10px;color:var(--muted)">${added}</td>
+                <td style="font-size:10px;color:var(--muted)">${checked}</td>
+                <td><button class="btn btn-outline btn-sm" onclick="showCodeHistory('${esc(c.code)}')">📋</button></td>
+                <td><button class="del-btn" onclick="deleteCode('${esc(c.code)}')" title="Удалить">✕</button></td>
+            </tr>`;
+        });
+    }
+
+    renderEvents(d.events);
+}
+
+function renderEvents(events) {
+    const box = document.getElementById('eventsBox');
+    if (!events || !events.length) {
+        box.innerHTML = '<div class="empty">Нет событий — изменения статуса появятся здесь</div>';
+        return;
+    }
+    box.innerHTML = '';
+    events.forEach(ev => {
+        const t = ev.timestamp ? msk(ev.timestamp) : '?';
+        const typ = (ev.type||'').toLowerCase();
+        const oldB = badgeH(ev.old_status);
+        const newB = badgeH(ev.new_status);
+        let userInfo = '';
+        if (ev.redeemed_by_username && ev.redeemed_by_username !== 'N/A' && ev.redeemed_by_username !== 'None') {
+            userInfo = ` — <b>${esc(ev.redeemed_by_username)}</b> (ID: ${esc(ev.redeemed_by_id||'')})`;
+        }
+        const hash = ev.proof_hash ? ev.proof_hash.substring(0,14)+'…' : '';
+
+        box.innerHTML += `<div class="ev-row">
+            <div class="ev-time">${t}</div>
+            <div class="ev-body">
+                <span class="badge ${typ}">${ev.type||''}</span>
+                <span class="mono" style="font-size:11px;margin-left:6px">promos.discord.gg/${esc(ev.code)}</span><br>
+                ${oldB} <span class="ev-arrow">→</span> ${newB}${userInfo}
+                ${ev.detail ? `<br><span style="font-size:10px;color:var(--muted)">${esc(ev.detail)}</span>` : ''}
+            </div>
+            <div class="ev-hash" title="${esc(ev.proof_hash||'')}">SHA256: ${hash}</div>
+        </div>`;
+    });
+}
+
+function badgeH(s) {
+    if (!s || s==='None') return '<span class="badge pending">—</span>';
+    return `<span class="badge ${s.toLowerCase()}">${s}</span>`;
+}
+
+function msk(dateStr) {
+    if (!dateStr) return '—';
+    const d = new Date(dateStr);
+    return d.toLocaleString('ru-RU', {timeZone:'Europe/Moscow'}) + ' МСК';
+}
+
+function mskNow() {
+    return new Date().toLocaleString('ru-RU', {timeZone:'Europe/Moscow', hour12:false}) + ' МСК';
+}
+
+function esc(s) {
+    if (!s) return '';
+    const d = document.createElement('div');
+    d.textContent = String(s);
+    return d.innerHTML;
+}
+
+function tick() {
+    cd--;
+    document.getElementById('countdown').textContent = cd;
+    document.getElementById('watermark').textContent = mskNow();
+    if (cd <= 0) { cd = REFRESH; fetchData(); }
+}
+
+// Allow Enter in textarea to not submit
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeModal();
+});
+
+fetchData();
+setInterval(tick, 1000);
+</script>
+</body>
+</html>
