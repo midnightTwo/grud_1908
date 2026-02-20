@@ -77,11 +77,24 @@ async def get_access_token(refresh_token: str, client_id: str) -> str:
     async with httpx.AsyncClient(timeout=30.0) as client:
         response = await client.post(token_url, data=data)
         if response.status_code != 200:
-            logger.error(f"Token refresh failed: {response.status_code} — {response.text}")
-            raise Exception(f"Failed to refresh token: {response.status_code}")
+            try:
+                err_body = response.json()
+                err_code = err_body.get("error", "unknown")
+                err_desc = err_body.get("error_description", response.text[:200])
+            except Exception:
+                err_code = "unknown"
+                err_desc = response.text[:200]
+            logger.error(f"Token refresh failed: {response.status_code} — {err_code}: {err_desc}")
+            raise Exception(f"Token refresh failed ({err_code}): {err_desc}")
         
         token_data = response.json()
         access_token = token_data["access_token"]
+        
+        # If Microsoft returned a new refresh_token, log it (tokens rotate)
+        new_refresh = token_data.get("refresh_token")
+        if new_refresh and new_refresh != refresh_token:
+            logger.info(f"Microsoft rotated refresh_token for client {client_id[:8]}...")
+        
         _token_cache[cache_key] = access_token
         return access_token
 
