@@ -67,36 +67,50 @@ async def get_access_token(refresh_token: str, client_id: str) -> str:
         return _token_cache[cache_key]
 
     token_url = "https://login.microsoftonline.com/common/oauth2/v2.0/token"
-    data = {
-        "client_id": client_id,
-        "refresh_token": refresh_token,
-        "grant_type": "refresh_token",
-        "scope": "https://outlook.office365.com/IMAP.AccessAsUser.All offline_access",
-    }
+    
+    # Try multiple scopes — the original token may have been issued with different scopes
+    scopes_to_try = [
+        "https://outlook.office365.com/IMAP.AccessAsUser.All offline_access",
+        "https://outlook.office.com/IMAP.AccessAsUser.All offline_access",
+        "https://outlook.office365.com/.default offline_access",
+    ]
+    
+    last_error = None
+    
+    for scope in scopes_to_try:
+        data = {
+            "client_id": client_id,
+            "refresh_token": refresh_token,
+            "grant_type": "refresh_token",
+            "scope": scope,
+        }
 
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        response = await client.post(token_url, data=data)
-        if response.status_code != 200:
-            try:
-                err_body = response.json()
-                err_code = err_body.get("error", "unknown")
-                err_desc = err_body.get("error_description", response.text[:200])
-            except Exception:
-                err_code = "unknown"
-                err_desc = response.text[:200]
-            logger.error(f"Token refresh failed: {response.status_code} — {err_code}: {err_desc}")
-            raise Exception(f"Token refresh failed ({err_code}): {err_desc}")
-        
-        token_data = response.json()
-        access_token = token_data["access_token"]
-        
-        # If Microsoft returned a new refresh_token, log it (tokens rotate)
-        new_refresh = token_data.get("refresh_token")
-        if new_refresh and new_refresh != refresh_token:
-            logger.info(f"Microsoft rotated refresh_token for client {client_id[:8]}...")
-        
-        _token_cache[cache_key] = access_token
-        return access_token
+        async with httpx.AsyncClient(timeout=30.0) as http_client:
+            response = await http_client.post(token_url, data=data)
+            if response.status_code == 200:
+                token_data = response.json()
+                access_token = token_data["access_token"]
+                
+                new_refresh = token_data.get("refresh_token")
+                if new_refresh and new_refresh != refresh_token:
+                    logger.info(f"Microsoft rotated refresh_token for client {client_id[:8]}...")
+                
+                _token_cache[cache_key] = access_token
+                logger.info(f"Token refresh OK with scope: {scope[:40]}...")
+                return access_token
+            else:
+                try:
+                    err_body = response.json()
+                    err_code = err_body.get("error", "unknown")
+                    err_desc = err_body.get("error_description", response.text[:300])
+                except Exception:
+                    err_code = "unknown"
+                    err_desc = response.text[:300]
+                last_error = f"{err_code}: {err_desc}"
+                logger.warning(f"Token refresh failed with scope '{scope[:40]}': {err_code}")
+    
+    logger.error(f"All token refresh attempts failed for {client_id[:8]}: {last_error}")
+    raise Exception(f"Token refresh failed: {last_error}")
 
 
 def _extract_body(msg: email.message.Message) -> tuple[str, str]:
