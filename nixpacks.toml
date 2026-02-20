@@ -1,5 +1,11 @@
-[tool.nixpacks.phases.build]
+[phases.setup]
+nixPkgs = ["python312"]
+
+[phases.install]
 cmds = ["pip install -r requirements.txt"]
 
-[tool.nixpacks.phases.start]
+[phases.build]
+cmds = ["mkdir -p /app/data"]
+
+[start]
 cmd = "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"
