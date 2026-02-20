@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin — SecureMail</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: { extend: { fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] } } }
+        }
+    </script>
+    <style>
+        * { font-family: 'Inter', system-ui, sans-serif; }
+        body { background: #09090b; color: #e4e4e7; }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 3px; }
+        .card-dark { background: #18181b; border: 1px solid #27272a; }
+    </style>
+</head>
+<body class="h-full">
+
+<!-- ==================== ADMIN LOGIN ==================== -->
+<div id="admin-login" class="min-h-full flex items-center justify-center p-4" style="background: radial-gradient(ellipse at center top, #1a1a2e 0%, #09090b 60%);">
+    <div class="w-full max-w-sm fade-in">
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-14 h-14 bg-violet-600 rounded-2xl mb-4 shadow-lg shadow-violet-600/30">
+                <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+            </div>
+            <h1 class="text-xl font-bold text-white">Admin Panel</h1>
+            <p class="text-zinc-500 text-sm mt-1">SecureMail Management</p>
+        </div>
+        <div class="card-dark rounded-2xl shadow-2xl shadow-black/40 p-8">
+            <form id="admin-login-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-zinc-400 mb-1.5">Admin Password</label>
+                    <input id="admin-password" type="password" required
+                        class="w-full px-4 py-3 rounded-xl border border-zinc-700/50 bg-zinc-900/60 text-white placeholder-zinc-600 focus:bg-zinc-900 focus:border-violet-500/60 focus:ring-4 focus:ring-violet-500/10 outline-none transition-all text-sm"
+                        placeholder="Enter admin password">
+                </div>
+                <div id="admin-login-error" class="hidden text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3"></div>
+                <button type="submit" class="w-full py-3 px-4 bg-violet-600 hover:bg-violet-500 text-white rounded-xl font-medium text-sm transition-all shadow-lg shadow-violet-600/20">
+                    Access Admin Panel
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== ADMIN DASHBOARD ==================== -->
+<div id="admin-dashboard" class="hidden min-h-full">
+    <!-- Header -->
+    <header class="bg-[#0f0f12] border-b border-zinc-800 px-6 py-4 flex items-center justify-between sticky top-0 z-30" style="backdrop-filter:blur(20px);background:rgba(15,15,18,0.88);">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-violet-600 rounded-lg flex items-center justify-center shadow-lg shadow-violet-600/20">
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+            </div>
+            <h1 class="text-lg font-semibold text-white">Admin Panel</h1>
+        </div>
+        <div class="flex items-center gap-3">
+            <button id="download-db-btn" title="Download Database" class="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-400 rounded-lg text-xs font-medium transition-all border border-emerald-600/20">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                Download DB
+            </button>
+            <a href="/" class="text-sm text-zinc-500 hover:text-zinc-300 transition-colors">← Mail</a>
+            <button id="admin-logout-btn" class="text-sm text-red-400 hover:text-red-300 font-medium transition-colors">Logout</button>
+        </div>
+    </header>
+
+    <div class="max-w-6xl mx-auto p-6 space-y-8">
+
+        <!-- ===== Bulk Upload ===== -->
+        <section class="card-dark rounded-2xl overflow-hidden fade-in">
+            <div class="px-6 py-4 border-b border-zinc-800 flex items-center justify-between">
+                <div>
+                    <h2 class="text-base font-semibold text-white">Bulk Upload Accounts</h2>
+                    <p class="text-xs text-zinc-500 mt-0.5">Format: email:password:recovery_email:recovery_password:refresh_token:client_id</p>
+                </div>
+                <span class="text-xs bg-blue-500/15 text-blue-400 px-2.5 py-1 rounded-full font-medium border border-blue-500/20">IMAP/OAuth2</span>
+            </div>
+            <div class="p-6">
+                <textarea id="bulk-text" rows="6" placeholder="Paste account lines here, one per line...&#10;email@outlook.com:pass123:recovery@mail.com:recpass:M.R3_BL2.xxxxx:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                    class="w-full px-4 py-3 rounded-xl border border-zinc-700/50 bg-zinc-900/60 text-zinc-200 placeholder-zinc-600 focus:bg-zinc-900 focus:border-zinc-600 focus:ring-2 focus:ring-zinc-500/10 outline-none transition-all text-sm font-mono resize-y"></textarea>
+                <div class="mt-4 flex items-center gap-3">
+                    <button id="bulk-upload-btn" class="px-5 py-2.5 bg-violet-600 hover:bg-violet-500 text-white rounded-xl text-sm font-medium transition-all shadow-lg shadow-violet-600/15">
+                        Import Accounts
+                    </button>
+                    <div id="bulk-result" class="hidden text-sm"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== Outlook Accounts ===== -->
+        <section class="card-dark rounded-2xl overflow-hidden fade-in">
+            <div class="px-6 py-4 border-b border-zinc-800 flex items-center justify-between">
+                <h2 class="text-base font-semibold text-white">Outlook Accounts</h2>
+                <button onclick="loadAccounts()" class="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">Refresh</button>
+            </div>
+            <div id="accounts-loading" class="p-8 text-center text-sm text-zinc-500">Loading...</div>
+            <div id="accounts-empty" class="hidden p-8 text-center text-sm text-zinc-500">No accounts yet. Upload some above.</div>
+            <div id="accounts-table-wrap" class="hidden overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-zinc-900/50">
+                        <tr>
+                            <th class="text-left px-6 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wider">ID</th>
+                            <th class="text-left px-6 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wider">Outlook Email</th>
+                            <th class="text-left px-6 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wider">Client ID</th>
+                            <th class="text-left px-6 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wider">Assigned To</th>
+                            <th class="text-left px-6 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="accounts-tbody" class="divide-y divide-zinc-800/50"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- ===== Create User ===== -->
+        <section class="card-dark rounded-2xl overflow-hidden fade-in">
+            <div class="px-6 py-4 border-b border-zinc-800">
+                <h2 class="text-base font-semibold text-white">Create User</h2>
+                <p class="text-xs text-zinc-500 mt-0.5">Create a login/password pair and link it to an Outlook account</p>
+            </div>
+            <div class="p-6">
+                <form id="create-user-form" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-400 mb-1">Login</label>
+                        <input id="new-login" type="text" required placeholder="user@yourdomain.com"
+                            class="w-full px-4 py-2.5 rounded-xl border border-zinc-700/50 bg-zinc-900/60 text-white placeholder-zinc-600 focus:bg-zinc-900 focus:border-zinc-600 outline-none transition-all text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-400 mb-1">Password</label>
+                        <input id="new-password" type="text" required placeholder="Strong password"
+                            class="w-full px-4 py-2.5 rounded-xl border border-zinc-700/50 bg-zinc-900/60 text-white placeholder-zinc-600 focus:bg-zinc-900 focus:border-zinc-600 outline-none transition-all text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-400 mb-1">Display Name <span class="text-zinc-600">(optional)</span></label>
+                        <input id="new-display-name" type="text" placeholder="John Doe"
+                            class="w-full px-4 py-2.5 rounded-xl border border-zinc-700/50 bg-zinc-900/60 text-white placeholder-zinc-600 focus:bg-zinc-900 focus:border-zinc-600 outline-none transition-all text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-400 mb-1">Outlook Account ID</label>
+                        <input id="new-outlook-id" type="number" required placeholder="ID from table above"
+                            class="w-full px-4 py-2.5 rounded-xl border border-zinc-700/50 bg-zinc-900/60 text-white placeholder-zinc-600 focus:bg-zinc-900 focus:border-zinc-600 outline-none transition-all text-sm">
+                    </div>
+                    <div class="sm:col-span-2 flex items-center gap-3">
+                        <button type="submit" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-medium transition-all shadow-lg shadow-emerald-600/15">
+                            Create User
+                        </button>
+                        <div id="create-user-result" class="hidden text-sm"></div>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <!-- ===== Users ===== -->
+        <section class="card-dark rounded-2xl overflow-hidden fade-in">
+            <div class="px-6 py-4 border-b border-zinc-800 flex items-center justify-between">
+                <h2 class="text-base font-semibold text-white">Users</h2>
+                <button onclick="loadUsers()" class="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">Refresh</button>
+            </div>
+            <div id="users-loading" class="p-8 text-center text-sm text-zinc-500">Loading...</div>
+            <div id="users-empty" class="hidden p-8 text-center text-sm text-zinc-500">No users yet.</div>
+            <div id="users-table-wrap" class="hidden overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-zinc-900/50">
+                        <tr>
+                            <th class="text-left px-6 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wider">ID</th>
+                            <th class="text-left px-6 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wider">Login</th>
+                            <th class="text-left px-6 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wider">Display Name</th>
+                            <th class="text-left px-6 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wider">Account ID</th>
+                            <th class="text-left px-6 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wider">Status</th>
+                            <th class="text-left px-6 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-tbody" class="divide-y divide-zinc-800/50"></tbody>
+                </table>
+            </div>
+        </section>
+
+    </div>
+</div>
+
+<script>
+let adminToken = localStorage.getItem('adminToken');
+
+async function adminRequest(url, options = {}) {
+    const res = await fetch(url, { ...options, headers: { 'Content-Type': 'application/json', ...options.headers } });
+    if (!res.ok) { const err = await res.json().catch(() => ({ detail: 'Error' })); throw new Error(err.detail || `Error ${res.status}`); }
+    return res.json();
+}
+
+// ==================== AUTH ====================
+document.getElementById('admin-login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const password = document.getElementById('admin-password').value;
+    const errorEl = document.getElementById('admin-login-error');
+    errorEl.classList.add('hidden');
+    try {
+        const data = await adminRequest('/api/admin/login', { method: 'POST', body: JSON.stringify({ password }) });
+        adminToken = data.token;
+        localStorage.setItem('adminToken', adminToken);
+        showDashboard();
+    } catch (err) { errorEl.textContent = err.message; errorEl.classList.remove('hidden'); }
+});
+
+document.getElementById('admin-logout-btn').addEventListener('click', () => {
+    adminToken = null; localStorage.removeItem('adminToken');
+    document.getElementById('admin-login').classList.remove('hidden');
+    document.getElementById('admin-dashboard').classList.add('hidden');
+});
+
+function showDashboard() {
+    document.getElementById('admin-login').classList.add('hidden');
+    document.getElementById('admin-dashboard').classList.remove('hidden');
+    loadAccounts(); loadUsers();
+}
+
+// ==================== DOWNLOAD DB ====================
+document.getElementById('download-db-btn').addEventListener('click', () => {
+    if (!adminToken) return;
+    window.location.href = `/api/admin/download-db?admin_token=${encodeURIComponent(adminToken)}`;
+});
+
+// ==================== BULK UPLOAD ====================
+document.getElementById('bulk-upload-btn').addEventListener('click', async () => {
+    const text = document.getElementById('bulk-text').value.trim();
+    const resultEl = document.getElementById('bulk-result');
+    if (!text) return;
+    resultEl.classList.remove('hidden'); resultEl.textContent = 'Importing...'; resultEl.className = 'text-sm text-zinc-400';
+    try {
+        const data = await adminRequest('/api/admin/bulk-upload', { method: 'POST', body: JSON.stringify({ admin_token: adminToken, accounts_text: text }) });
+        let msg = `✓ Imported: ${data.imported}, Updated: ${data.duplicates}`;
+        if (data.errors.length > 0) msg += ` | Errors: ${data.errors.length}`;
+        resultEl.textContent = msg; resultEl.className = 'text-sm text-emerald-400';
+        if (data.errors.length > 0) resultEl.innerHTML += '<br><span class="text-red-400">' + data.errors.join('<br>') + '</span>';
+        document.getElementById('bulk-text').value = ''; loadAccounts();
+    } catch (err) { resultEl.textContent = '✗ ' + err.message; resultEl.className = 'text-sm text-red-400'; }
+});
+
+// ==================== ACCOUNTS ====================
+async function loadAccounts() {
+    const loading = document.getElementById('accounts-loading');
+    const empty = document.getElementById('accounts-empty');
+    const tableWrap = document.getElementById('accounts-table-wrap');
+    loading.classList.remove('hidden'); empty.classList.add('hidden'); tableWrap.classList.add('hidden');
+    try {
+        const accounts = await adminRequest(`/api/admin/accounts?admin_token=${adminToken}`);
+        loading.classList.add('hidden');
+        if (accounts.length === 0) { empty.classList.remove('hidden'); return; }
+        const tbody = document.getElementById('accounts-tbody');
+        tbody.innerHTML = '';
+        accounts.forEach(acc => {
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-zinc-800/30 transition-colors';
+            tr.innerHTML = `
+                <td class="px-6 py-3 text-zinc-500 font-mono">${acc.id}</td>
+                <td class="px-6 py-3 font-medium text-white">${esc(acc.outlook_email)}</td>
+                <td class="px-6 py-3 text-zinc-500 font-mono text-xs">${esc(acc.client_id.substring(0,18))}...</td>
+                <td class="px-6 py-3">${acc.assigned_user
+                    ? `<span class="bg-emerald-500/15 text-emerald-400 px-2 py-0.5 rounded-full text-xs font-medium border border-emerald-500/20">${esc(acc.assigned_user)}</span>`
+                    : '<span class="text-zinc-600 text-xs">Unassigned</span>'}</td>
+                <td class="px-6 py-3"><button onclick="deleteAccount(${acc.id})" class="text-red-400/70 hover:text-red-400 text-xs font-medium transition-colors">Delete</button></td>`;
+            tbody.appendChild(tr);
+        });
+        tableWrap.classList.remove('hidden');
+    } catch (err) { loading.textContent = 'Error: ' + err.message; }
+}
+
+async function deleteAccount(id) {
+    if (!confirm('Delete this account? Any linked user will be unlinked.')) return;
+    try { await adminRequest(`/api/admin/accounts/${id}?admin_token=${adminToken}`, { method: 'DELETE' }); loadAccounts(); loadUsers(); }
+    catch (err) { alert(err.message); }
+}
+
+// ==================== USERS ====================
+async function loadUsers() {
+    const loading = document.getElementById('users-loading');
+    const empty = document.getElementById('users-empty');
+    const tableWrap = document.getElementById('users-table-wrap');
+    loading.classList.remove('hidden'); empty.classList.add('hidden'); tableWrap.classList.add('hidden');
+    try {
+        const users = await adminRequest(`/api/admin/users?admin_token=${adminToken}`);
+        loading.classList.add('hidden');
+        if (users.length === 0) { empty.classList.remove('hidden'); return; }
+        const tbody = document.getElementById('users-tbody');
+        tbody.innerHTML = '';
+        users.forEach(u => {
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-zinc-800/30 transition-colors';
+            tr.innerHTML = `
+                <td class="px-6 py-3 text-zinc-500 font-mono">${u.id}</td>
+                <td class="px-6 py-3 font-medium text-white">${esc(u.login)}</td>
+                <td class="px-6 py-3 text-zinc-400">${esc(u.display_name || '—')}</td>
+                <td class="px-6 py-3 text-zinc-500 font-mono">${u.outlook_account_id || '—'}</td>
+                <td class="px-6 py-3">${u.is_active
+                    ? '<span class="bg-emerald-500/15 text-emerald-400 px-2 py-0.5 rounded-full text-xs font-medium border border-emerald-500/20">Active</span>'
+                    : '<span class="bg-red-500/15 text-red-400 px-2 py-0.5 rounded-full text-xs font-medium border border-red-500/20">Disabled</span>'}</td>
+                <td class="px-6 py-3"><button onclick="deleteUser(${u.id})" class="text-red-400/70 hover:text-red-400 text-xs font-medium transition-colors">Delete</button></td>`;
+            tbody.appendChild(tr);
+        });
+        tableWrap.classList.remove('hidden');
+    } catch (err) { loading.textContent = 'Error: ' + err.message; }
+}
+
+document.getElementById('create-user-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const resultEl = document.getElementById('create-user-result');
+    resultEl.classList.remove('hidden'); resultEl.textContent = 'Creating...'; resultEl.className = 'text-sm text-zinc-400';
+    try {
+        const data = await adminRequest('/api/admin/users', { method: 'POST', body: JSON.stringify({
+            admin_token: adminToken,
+            login: document.getElementById('new-login').value.trim(),
+            password: document.getElementById('new-password').value,
+            display_name: document.getElementById('new-display-name').value.trim() || null,
+            outlook_account_id: parseInt(document.getElementById('new-outlook-id').value),
+        })});
+        resultEl.textContent = `✓ User "${data.login}" created (ID: ${data.id})`; resultEl.className = 'text-sm text-emerald-400';
+        document.getElementById('create-user-form').reset(); loadUsers(); loadAccounts();
+    } catch (err) { resultEl.textContent = '✗ ' + err.message; resultEl.className = 'text-sm text-red-400'; }
+});
+
+async function deleteUser(id) {
+    if (!confirm('Delete this user?')) return;
+    try { await adminRequest(`/api/admin/users/${id}?admin_token=${adminToken}`, { method: 'DELETE' }); loadUsers(); loadAccounts(); }
+    catch (err) { alert(err.message); }
+}
+
+function esc(str) { const d = document.createElement('div'); d.textContent = str || ''; return d.innerHTML; }
+
+// ==================== INIT ====================
+if (adminToken) {
+    adminRequest(`/api/admin/accounts?admin_token=${adminToken}`)
+        .then(() => showDashboard())
+        .catch(() => { adminToken = null; localStorage.removeItem('adminToken'); });
+}
+</script>
+</body>
+</html>

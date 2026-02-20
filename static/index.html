@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SecureMail</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+                    colors: {
+                        brand: {
+                            50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe',
+                            300: '#93c5fd', 400: '#60a5fa', 500: '#3b82f6',
+                            600: '#2563eb', 700: '#1d4ed8', 800: '#1e40af', 900: '#1e3a8a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * { font-family: 'Inter', system-ui, sans-serif; }
+        body { background: #09090b; color: #e4e4e7; }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .slide-in { animation: slideIn 0.25s ease-out; }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+        .mail-row:hover { background-color: rgba(63,63,70,0.3); }
+        .mail-row.unread { font-weight: 600; }
+        .mail-row.selected { background-color: rgba(59,130,246,0.1); border-left: 3px solid #3b82f6; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+        .email-body img { max-width: 100%; height: auto; }
+        .email-body a { color: #60a5fa; text-decoration: underline; }
+        .glass { backdrop-filter: blur(20px); background: rgba(9,9,11,0.88); }
+        .loader { border: 3px solid #27272a; border-top: 3px solid #3b82f6; border-radius: 50%; width: 28px; height: 28px; animation: spin 0.8s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .card-dark { background: #18181b; border: 1px solid #27272a; }
+    </style>
+</head>
+<body class="h-full">
+
+<!-- ==================== LOGIN SCREEN ==================== -->
+<div id="login-screen" class="min-h-full flex items-center justify-center p-4" style="background: radial-gradient(ellipse at center top, #1a1a2e 0%, #09090b 60%);">
+    <div class="w-full max-w-md fade-in">
+        <!-- Logo -->
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-16 h-16 bg-brand-600 rounded-2xl mb-4 shadow-lg shadow-brand-600/30">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                </svg>
+            </div>
+            <h1 class="text-2xl font-bold text-white">SecureMail</h1>
+            <p class="text-zinc-500 mt-1 text-sm">Sign in to your mailbox</p>
+        </div>
+
+        <!-- Login Form -->
+        <div class="card-dark rounded-2xl shadow-2xl shadow-black/40 p-8">
+            <form id="login-form" class="space-y-5">
+                <div>
+                    <label class="block text-sm font-medium text-zinc-400 mb-1.5">Login</label>
+                    <input id="login-input" type="text" required autocomplete="username"
+                        class="w-full px-4 py-3 rounded-xl border border-zinc-700/50 bg-zinc-900/60 text-white placeholder-zinc-600 focus:bg-zinc-900 focus:border-brand-500/60 focus:ring-4 focus:ring-brand-500/10 outline-none transition-all text-sm"
+                        placeholder="Enter your login">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-zinc-400 mb-1.5">Password</label>
+                    <input id="password-input" type="password" required autocomplete="current-password"
+                        class="w-full px-4 py-3 rounded-xl border border-zinc-700/50 bg-zinc-900/60 text-white placeholder-zinc-600 focus:bg-zinc-900 focus:border-brand-500/60 focus:ring-4 focus:ring-brand-500/10 outline-none transition-all text-sm"
+                        placeholder="Enter your password">
+                </div>
+                <div id="login-error" class="hidden text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3"></div>
+                <button type="submit" id="login-btn"
+                    class="w-full py-3 px-4 bg-brand-600 hover:bg-brand-500 active:bg-brand-700 text-white rounded-xl font-medium text-sm transition-all shadow-lg shadow-brand-600/20 hover:shadow-brand-500/30 flex items-center justify-center gap-2">
+                    <span>Sign In</span>
+                    <div id="login-spinner" class="loader hidden" style="width:18px;height:18px;border-width:2px;border-color:#fff;border-top-color:transparent;"></div>
+                </button>
+            </form>
+        </div>
+
+        <p class="text-center text-xs text-zinc-700 mt-6">&copy; 2026 SecureMail. All rights reserved.</p>
+    </div>
+</div>
+
+<!-- ==================== MAIL APP ==================== -->
+<div id="mail-app" class="hidden h-full flex flex-col">
+    <!-- Top Bar -->
+    <header class="glass border-b border-zinc-800 px-6 py-3 flex items-center justify-between sticky top-0 z-30">
+        <div class="flex items-center gap-3">
+            <div class="flex items-center justify-center w-9 h-9 bg-brand-600 rounded-xl shadow-lg shadow-brand-600/20">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                </svg>
+            </div>
+            <h1 class="text-lg font-semibold text-white">SecureMail</h1>
+        </div>
+        <div class="flex items-center gap-4">
+            <button id="refresh-btn" title="Refresh" class="p-2 hover:bg-zinc-800 rounded-xl transition-colors group">
+                <svg class="w-5 h-5 text-zinc-500 group-hover:text-brand-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+            </button>
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-brand-600/20 text-brand-400 rounded-full flex items-center justify-center text-sm font-semibold" id="user-avatar"></div>
+                <span class="text-sm text-zinc-400 font-medium hidden sm:block" id="user-name"></span>
+            </div>
+            <button id="logout-btn" title="Sign Out" class="p-2 hover:bg-red-500/10 rounded-xl transition-colors group">
+                <svg class="w-5 h-5 text-zinc-600 group-hover:text-red-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="flex-1 flex overflow-hidden">
+        <!-- Sidebar -->
+        <aside class="w-56 border-r border-zinc-800 bg-[#0f0f12] p-4 hidden lg:block flex-shrink-0">
+            <nav class="space-y-1">
+                <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-brand-600/10 text-brand-400 font-medium text-sm border border-brand-600/15">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+                    </svg>
+                    <span>Inbox</span>
+                    <span id="unread-count" class="ml-auto bg-brand-600 text-white text-xs rounded-full px-2 py-0.5 font-semibold hidden">0</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Email List -->
+        <div id="email-list-panel" class="w-full lg:w-96 xl:w-[420px] border-r border-zinc-800 bg-[#0f0f12] flex flex-col flex-shrink-0 overflow-hidden">
+            <!-- Search -->
+            <div class="p-3 border-b border-zinc-800/80">
+                <div class="relative">
+                    <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    <input id="search-input" type="text" placeholder="Search emails..."
+                        class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-zinc-800 bg-zinc-900/50 text-white placeholder-zinc-600 focus:bg-zinc-900 focus:border-brand-600/40 focus:ring-2 focus:ring-brand-600/10 outline-none transition-all text-sm">
+                </div>
+            </div>
+            
+            <!-- Loading -->
+            <div id="email-loading" class="flex-1 flex items-center justify-center">
+                <div class="text-center">
+                    <div class="loader mx-auto mb-3"></div>
+                    <p class="text-sm text-zinc-600">Loading emails...</p>
+                </div>
+            </div>
+
+            <!-- Empty state -->
+            <div id="email-empty" class="hidden flex-1 flex items-center justify-center">
+                <div class="text-center px-8">
+                    <div class="w-16 h-16 bg-zinc-800/50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-zinc-400 font-medium">No emails yet</h3>
+                    <p class="text-zinc-600 text-sm mt-1">Your inbox is empty</p>
+                </div>
+            </div>
+
+            <!-- Error state -->
+            <div id="email-error" class="hidden flex-1 flex items-center justify-center">
+                <div class="text-center px-8">
+                    <div class="w-16 h-16 bg-red-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-red-400 font-medium">Connection Error</h3>
+                    <p id="email-error-msg" class="text-zinc-500 text-sm mt-1">Could not connect to mailbox</p>
+                    <button onclick="loadEmails()" class="mt-3 text-sm text-brand-400 hover:text-brand-300 font-medium">Try again</button>
+                </div>
+            </div>
+
+            <!-- Email list -->
+            <div id="email-list" class="hidden flex-1 overflow-y-auto divide-y divide-zinc-800/50">
+            </div>
+        </div>
+
+        <!-- Email Detail -->
+        <div id="email-detail-panel" class="hidden lg:flex flex-1 flex-col bg-[#0f0f12] overflow-hidden">
+            <!-- No email selected -->
+            <div id="no-email-selected" class="flex-1 flex items-center justify-center">
+                <div class="text-center">
+                    <div class="w-20 h-20 bg-zinc-800/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-10 h-10 text-zinc-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                        </svg>
+                    </div>
+                    <p class="text-zinc-600 text-sm">Select an email to read</p>
+                </div>
+            </div>
+
+            <!-- Email content -->
+            <div id="email-content" class="hidden flex-1 flex flex-col overflow-hidden">
+                <!-- Back button (mobile) -->
+                <div class="lg:hidden p-3 border-b border-zinc-800">
+                    <button id="back-to-list" class="flex items-center gap-1 text-sm text-brand-400 hover:text-brand-300 font-medium">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                        </svg>
+                        Back
+                    </button>
+                </div>
+                <!-- Email Header -->
+                <div class="p-6 border-b border-zinc-800">
+                    <h2 id="detail-subject" class="text-xl font-semibold text-white mb-4"></h2>
+                    <div class="flex items-start gap-3">
+                        <div id="detail-avatar" class="w-10 h-10 rounded-full bg-brand-600/20 text-brand-400 flex items-center justify-center text-sm font-semibold flex-shrink-0"></div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span id="detail-sender" class="font-medium text-white text-sm"></span>
+                                <span id="detail-sender-email" class="text-zinc-500 text-xs"></span>
+                            </div>
+                            <div class="flex items-center gap-2 mt-0.5">
+                                <span id="detail-date" class="text-zinc-500 text-xs"></span>
+                                <span id="detail-attachments" class="hidden items-center gap-1 text-zinc-500 text-xs">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.414a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+                                    </svg>
+                                    <span id="detail-attach-list"></span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Email Body -->
+                <div id="detail-body" class="flex-1 overflow-y-auto p-6 email-body text-sm text-zinc-300 leading-relaxed"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ==================== STATE ====================
+let authToken = localStorage.getItem('token');
+let userInfo = JSON.parse(localStorage.getItem('userInfo') || 'null');
+let emails = [];
+let selectedUid = null;
+
+// ==================== API ====================
+const API = {
+    async request(url, options = {}) {
+        const headers = { 'Content-Type': 'application/json', ...options.headers };
+        if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+        const res = await fetch(url, { ...options, headers });
+        if (res.status === 401) { logout(); throw new Error('Unauthorized'); }
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
+            throw new Error(err.detail || `Error ${res.status}`);
+        }
+        return res.json();
+    },
+    login: (login, password) => API.request('/api/auth/login', { method: 'POST', body: JSON.stringify({ login, password }) }),
+    getInbox: () => API.request('/api/mail/inbox'),
+    getMessage: (uid) => API.request(`/api/mail/message/${uid}`),
+    refreshMail: () => API.request('/api/mail/refresh', { method: 'POST' }),
+};
+
+// ==================== AUTH ====================
+function showLogin() {
+    document.getElementById('login-screen').classList.remove('hidden');
+    document.getElementById('mail-app').classList.add('hidden');
+}
+function showApp() {
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('mail-app').classList.remove('hidden');
+    const name = userInfo?.display_name || userInfo?.login || 'U';
+    document.getElementById('user-name').textContent = name;
+    document.getElementById('user-avatar').textContent = name.charAt(0).toUpperCase();
+    loadEmails();
+}
+function logout() {
+    authToken = null; userInfo = null;
+    localStorage.removeItem('token'); localStorage.removeItem('userInfo');
+    showLogin();
+}
+
+document.getElementById('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const login = document.getElementById('login-input').value.trim();
+    const password = document.getElementById('password-input').value;
+    const errorEl = document.getElementById('login-error');
+    const spinner = document.getElementById('login-spinner');
+    const btn = document.getElementById('login-btn');
+    errorEl.classList.add('hidden'); spinner.classList.remove('hidden'); btn.disabled = true;
+    try {
+        const data = await API.login(login, password);
+        authToken = data.token;
+        userInfo = { login: data.login, display_name: data.display_name };
+        localStorage.setItem('token', authToken);
+        localStorage.setItem('userInfo', JSON.stringify(userInfo));
+        showApp();
+    } catch (err) {
+        errorEl.textContent = err.message; errorEl.classList.remove('hidden');
+    } finally {
+        spinner.classList.add('hidden'); btn.disabled = false;
+    }
+});
+document.getElementById('logout-btn').addEventListener('click', logout);
+
+// ==================== EMAIL LIST ====================
+async function loadEmails() {
+    const loading = document.getElementById('email-loading');
+    const list = document.getElementById('email-list');
+    const empty = document.getElementById('email-empty');
+    const error = document.getElementById('email-error');
+    loading.classList.remove('hidden'); list.classList.add('hidden');
+    empty.classList.add('hidden'); error.classList.add('hidden');
+    try {
+        emails = await API.getInbox();
+        if (emails.length === 0) { loading.classList.add('hidden'); empty.classList.remove('hidden'); return; }
+        renderEmailList(emails);
+        loading.classList.add('hidden'); list.classList.remove('hidden');
+        const unread = emails.filter(e => !e.is_read).length;
+        const badge = document.getElementById('unread-count');
+        if (unread > 0) { badge.textContent = unread; badge.classList.remove('hidden'); }
+        else { badge.classList.add('hidden'); }
+    } catch (err) {
+        loading.classList.add('hidden'); error.classList.remove('hidden');
+        document.getElementById('email-error-msg').textContent = err.message;
+    }
+}
+
+function renderEmailList(emailList) {
+    const container = document.getElementById('email-list');
+    container.innerHTML = '';
+    emailList.forEach(mail => {
+        const el = document.createElement('div');
+        el.className = `mail-row px-4 py-3.5 cursor-pointer transition-all ${!mail.is_read ? 'unread' : ''} ${selectedUid === mail.uid ? 'selected' : ''}`;
+        el.onclick = () => selectEmail(mail.uid);
+        const initials = (mail.sender || '?').charAt(0).toUpperCase();
+        const colors = ['bg-blue-500/20 text-blue-400', 'bg-purple-500/20 text-purple-400', 'bg-emerald-500/20 text-emerald-400', 'bg-amber-500/20 text-amber-400', 'bg-rose-500/20 text-rose-400', 'bg-cyan-500/20 text-cyan-400'];
+        const colorClass = colors[mail.sender.charCodeAt(0) % colors.length];
+        el.innerHTML = `
+            <div class="flex items-start gap-3">
+                <div class="w-9 h-9 rounded-full ${colorClass} flex items-center justify-center text-xs font-semibold flex-shrink-0 mt-0.5">${initials}</div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="text-sm ${!mail.is_read ? 'text-white' : 'text-zinc-400'} truncate">${escapeHtml(mail.sender)}</span>
+                        <span class="text-xs text-zinc-600 flex-shrink-0 whitespace-nowrap">${formatDate(mail.date)}</span>
+                    </div>
+                    <div class="text-sm ${!mail.is_read ? 'text-zinc-200' : 'text-zinc-500'} truncate mt-0.5">${escapeHtml(mail.subject)}</div>
+                    <div class="text-xs text-zinc-600 truncate mt-0.5">${escapeHtml(mail.preview)}</div>
+                </div>
+                ${mail.has_attachments ? '<svg class="w-4 h-4 text-zinc-700 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.414a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>' : ''}
+            </div>`;
+        container.appendChild(el);
+    });
+}
+
+// ==================== EMAIL DETAIL ====================
+async function selectEmail(uid) {
+    selectedUid = uid;
+    document.querySelectorAll('.mail-row').forEach((el, i) => {
+        el.classList.toggle('selected', emails[i]?.uid === uid);
+    });
+    const detailPanel = document.getElementById('email-detail-panel');
+    const noSelected = document.getElementById('no-email-selected');
+    const content = document.getElementById('email-content');
+    detailPanel.classList.remove('hidden'); detailPanel.classList.add('flex');
+    noSelected.classList.add('hidden'); content.classList.remove('hidden');
+    document.getElementById('detail-body').innerHTML = '<div class="flex justify-center py-12"><div class="loader"></div></div>';
+    try {
+        const mail = await API.getMessage(uid);
+        document.getElementById('detail-subject').textContent = mail.subject;
+        document.getElementById('detail-sender').textContent = mail.sender;
+        document.getElementById('detail-sender-email').textContent = `<${mail.sender_email}>`;
+        document.getElementById('detail-date').textContent = mail.date;
+        document.getElementById('detail-avatar').textContent = (mail.sender || '?').charAt(0).toUpperCase();
+        if (mail.has_attachments && mail.attachments.length > 0) {
+            document.getElementById('detail-attachments').classList.remove('hidden');
+            document.getElementById('detail-attachments').classList.add('flex');
+            document.getElementById('detail-attach-list').textContent = mail.attachments.join(', ');
+        } else { document.getElementById('detail-attachments').classList.add('hidden'); }
+        const body = document.getElementById('detail-body');
+        if (mail.body_html) {
+            const iframe = document.createElement('iframe');
+            iframe.sandbox = 'allow-same-origin';
+            iframe.style.cssText = 'width:100%;border:none;min-height:400px;';
+            body.innerHTML = ''; body.appendChild(iframe);
+            const doc = iframe.contentDocument || iframe.contentWindow.document;
+            doc.open();
+            doc.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+                body { font-family: 'Inter', -apple-system, sans-serif; font-size: 14px; line-height: 1.6; color: #d4d4d8; background: #0f0f12; margin: 0; padding: 0; word-break: break-word; }
+                a { color: #60a5fa; } img { max-width: 100%; height: auto; } table { max-width: 100%; }
+                pre { white-space: pre-wrap; background: #18181b; padding: 12px; border-radius: 8px; overflow-x: auto; color: #d4d4d8; }
+            </style></head><body>${mail.body_html}</body></html>`);
+            doc.close();
+            setTimeout(() => { iframe.style.height = doc.body.scrollHeight + 'px'; }, 200);
+            const ro = new ResizeObserver(() => { iframe.style.height = doc.body.scrollHeight + 'px'; });
+            ro.observe(doc.body);
+        } else {
+            body.innerHTML = `<pre style="white-space:pre-wrap;font-family:inherit;color:#d4d4d8;">${escapeHtml(mail.body_text)}</pre>`;
+        }
+        if (window.innerWidth < 1024) document.getElementById('email-list-panel').classList.add('hidden');
+    } catch (err) {
+        document.getElementById('detail-body').innerHTML = `<div class="text-red-400 text-center py-12">${escapeHtml(err.message)}</div>`;
+    }
+}
+
+document.getElementById('back-to-list')?.addEventListener('click', () => {
+    document.getElementById('email-list-panel').classList.remove('hidden');
+    document.getElementById('email-detail-panel').classList.add('hidden');
+    document.getElementById('email-detail-panel').classList.remove('flex');
+});
+
+// ==================== REFRESH ====================
+document.getElementById('refresh-btn').addEventListener('click', async () => {
+    const btn = document.getElementById('refresh-btn');
+    btn.querySelector('svg').classList.add('animate-spin');
+    try { await API.refreshMail(); await loadEmails(); }
+    finally { btn.querySelector('svg').classList.remove('animate-spin'); }
+});
+
+// ==================== SEARCH ====================
+document.getElementById('search-input').addEventListener('input', (e) => {
+    const q = e.target.value.toLowerCase().trim();
+    if (!q) { renderEmailList(emails); return; }
+    renderEmailList(emails.filter(m => m.sender.toLowerCase().includes(q) || m.subject.toLowerCase().includes(q) || m.preview.toLowerCase().includes(q)));
+});
+
+// ==================== UTILS ====================
+function escapeHtml(str) { const d = document.createElement('div'); d.textContent = str || ''; return d.innerHTML; }
+function formatDate(s) { if (!s) return ''; const p = s.split(','); if (p.length >= 2) return p[0].trim() + ',' + p[1].trim().split(' ').slice(0,1).join(''); return s; }
+
+// ==================== INIT ====================
+if (authToken && userInfo) showApp(); else showLogin();
+</script>
+</body>
+</html>
