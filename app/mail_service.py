@@ -52,10 +52,10 @@ def _decode_mime_words(s: str) -> str:
     return " ".join(decoded_parts)
 
 
-def _generate_xoauth2_string(user: str, access_token: str) -> str:
-    """Generate XOAUTH2 authentication string."""
+def _generate_xoauth2_string(user: str, access_token: str) -> bytes:
+    """Generate raw XOAUTH2 SASL bytes (imaplib handles base64 encoding)."""
     auth_string = f"user={user}\x01auth=Bearer {access_token}\x01\x01"
-    return base64.b64encode(auth_string.encode()).decode()
+    return auth_string.encode()
 
 
 async def get_access_token(refresh_token: str, client_id: str) -> str:
@@ -307,13 +307,13 @@ async def fetch_emails(
         return _mail_cache[cache_key]
 
     access_token = await get_access_token(refresh_token, client_id)
-    auth_string = _generate_xoauth2_string(outlook_email, access_token)
+    auth_bytes = _generate_xoauth2_string(outlook_email, access_token)
 
     all_messages: list[MailMessage] = []
 
     try:
         imap = imaplib.IMAP4_SSL("outlook.office365.com", 993)
-        imap.authenticate("XOAUTH2", lambda x: auth_string.encode())
+        imap.authenticate("XOAUTH2", lambda x: auth_bytes)
 
         # Fetch from each folder
         for fld in _ALL_FOLDERS:
@@ -367,11 +367,11 @@ async def fetch_single_email(
                 return msg
 
     access_token = await get_access_token(refresh_token, client_id)
-    auth_string = _generate_xoauth2_string(outlook_email, access_token)
+    auth_bytes = _generate_xoauth2_string(outlook_email, access_token)
 
     try:
         imap = imaplib.IMAP4_SSL("outlook.office365.com", 993)
-        imap.authenticate("XOAUTH2", lambda x: auth_string.encode())
+        imap.authenticate("XOAUTH2", lambda x: auth_bytes)
         imap.select(folder, readonly=True)
 
         fetch_uid = raw_uid.encode() if isinstance(raw_uid, str) else raw_uid
