@@ -33,6 +33,13 @@ app.include_router(admin_router)
 app.include_router(auth_router)
 app.include_router(mail_router)
 
+
+# Health check — lightweight, no DB needed
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
+
 # Static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
