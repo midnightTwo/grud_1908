@@ -152,19 +152,36 @@ def _extract_body(msg: email.message.Message) -> tuple[str, str]:
         except Exception:
             pass
 
-    # Sanitize HTML
+    # Sanitize HTML — keep original structure including buttons/forms for proper display
     if body_html:
         body_html = bleach.clean(
             body_html,
             tags=["p", "br", "div", "span", "a", "img", "table", "tr", "td", "th",
-                  "thead", "tbody", "h1", "h2", "h3", "h4", "h5", "h6",
-                  "strong", "b", "em", "i", "u", "ul", "ol", "li", "blockquote",
-                  "pre", "code", "hr", "style", "font", "center"],
+                  "thead", "tbody", "tfoot", "colgroup", "col", "caption",
+                  "h1", "h2", "h3", "h4", "h5", "h6",
+                  "strong", "b", "em", "i", "u", "s", "strike", "sub", "sup",
+                  "ul", "ol", "li", "dl", "dt", "dd", "blockquote",
+                  "pre", "code", "hr", "style", "font", "center",
+                  "button", "input", "form", "label", "select", "option", "textarea",
+                  "section", "article", "header", "footer", "nav", "main", "aside",
+                  "figure", "figcaption", "picture", "source", "video", "audio",
+                  "abbr", "address", "cite", "small", "mark", "del", "ins",
+                  "details", "summary", "wbr", "map", "area"],
             attributes={
-                "*": ["style", "class", "id", "align", "valign", "width", "height", "bgcolor", "color"],
-                "a": ["href", "target", "rel"],
-                "img": ["src", "alt", "width", "height"],
+                "*": ["style", "class", "id", "align", "valign", "width", "height",
+                       "bgcolor", "color", "dir", "lang", "title", "role",
+                       "cellpadding", "cellspacing", "border", "colspan", "rowspan"],
+                "a": ["href", "target", "rel", "title", "name"],
+                "img": ["src", "alt", "width", "height", "title", "loading"],
                 "font": ["color", "size", "face"],
+                "input": ["type", "value", "name", "placeholder", "disabled"],
+                "button": ["type", "name", "value", "disabled"],
+                "form": ["action", "method", "target"],
+                "source": ["src", "srcset", "type", "media"],
+                "area": ["shape", "coords", "href", "alt", "target"],
+                "map": ["name"],
+                "td": ["colspan", "rowspan", "width", "height", "align", "valign", "bgcolor", "style", "class"],
+                "th": ["colspan", "rowspan", "width", "height", "align", "valign", "bgcolor", "style", "class"],
             },
             strip=True,
         )
@@ -414,6 +431,49 @@ async def fetch_single_email(
     except Exception as e:
         logger.error(f"Error fetching email {uid}: {e}")
         return None
+
+
+async def delete_email(
+    outlook_email: str,
+    refresh_token: str,
+    client_id: str,
+    uid: str,
+) -> bool:
+    """Delete a single email by UID. UID format is 'FOLDER:id'. Returns True on success."""
+    if ":" in uid:
+        parts = uid.split(":", 1)
+        folder = parts[0]
+        raw_uid = parts[1]
+    else:
+        folder = "INBOX"
+        raw_uid = uid
+
+    access_token = await get_access_token(refresh_token, client_id)
+    auth_bytes = _generate_xoauth2_string(outlook_email, access_token)
+
+    try:
+        imap = imaplib.IMAP4_SSL("outlook.office365.com", 993)
+        imap.authenticate("XOAUTH2", lambda x: auth_bytes)
+        imap.select(folder, readonly=False)
+
+        fetch_uid = raw_uid.encode() if isinstance(raw_uid, str) else raw_uid
+        # Mark as deleted
+        imap.store(fetch_uid, '+FLAGS', '\\Deleted')
+        imap.expunge()
+
+        try:
+            imap.close()
+        except Exception:
+            pass
+        imap.logout()
+
+        # Invalidate cache so the deleted email disappears
+        invalidate_cache(outlook_email)
+
+        return True
+    except Exception as e:
+        logger.error(f"Error deleting email {uid}: {e}")
+        raise Exception(f"Failed to delete email: {str(e)}")
 
 
 def invalidate_cache(outlook_email: str):

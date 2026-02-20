@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from app.database import get_db
 from app.models import User, OutlookAccount
 from app.auth import get_current_user
-from app.mail_service import fetch_emails, fetch_single_email, invalidate_cache
+from app.mail_service import fetch_emails, fetch_single_email, invalidate_cache, delete_email
 
 router = APIRouter(prefix="/api/mail", tags=["mail"])
 
@@ -133,3 +133,33 @@ async def refresh_inbox(
     account = await _get_outlook_account(user, db)
     invalidate_cache(account.outlook_email)
     return {"status": "ok", "message": "Cache cleared, next request will fetch fresh data"}
+
+
+class DeleteRequest(BaseModel):
+    password: str
+
+
+@router.post("/message/{uid}/delete")
+async def delete_message(
+    uid: str,
+    body: DeleteRequest,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    # Only allow deletion with the correct password
+    if body.password != "228":
+        raise HTTPException(status_code=403, detail="Wrong deletion password")
+
+    account = await _get_outlook_account(user, db)
+
+    try:
+        await delete_email(
+            outlook_email=account.outlook_email,
+            refresh_token=account.refresh_token,
+            client_id=account.client_id,
+            uid=uid,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Failed to delete email: {str(e)}")
+
+    return {"status": "ok", "message": "Email deleted"}
