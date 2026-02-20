@@ -36,6 +36,7 @@ class MailMessage:
     is_read: bool = False
     has_attachments: bool = False
     attachments: list = field(default_factory=list)
+    folder: str = "INBOX"
 
 
 def _decode_mime_words(s: str) -> str:
@@ -192,43 +193,29 @@ def _parse_sender(from_header: str) -> tuple[str, str]:
     return decoded, decoded
 
 
-async def fetch_emails(
-    outlook_email: str,
-    refresh_token: str,
-    client_id: str,
-    folder: str = "INBOX",
-    limit: int = 50,
+def _fetch_folder_messages(
+    imap: imaplib.IMAP4_SSL,
+    folder: str,
+    limit: int,
 ) -> list[MailMessage]:
-    """
-    Fetch emails from the specified folder using OAuth2 IMAP.
-    Results are cached for efficiency.
-    """
-    cache_key = f"mail_{outlook_email}_{folder}_{limit}"
-    if cache_key in _mail_cache:
-        return _mail_cache[cache_key]
-
-    access_token = await get_access_token(refresh_token, client_id)
-    auth_string = _generate_xoauth2_string(outlook_email, access_token)
-
+    """Fetch messages from a single IMAP folder (already authenticated)."""
     messages: list[MailMessage] = []
-
     try:
-        imap = imaplib.IMAP4_SSL("outlook.office365.com", 993)
-        imap.authenticate("XOAUTH2", lambda x: auth_string.encode())
-        imap.select(folder, readonly=True)
-
-        # Search for all messages, get latest N
-        status, data = imap.search(None, "ALL")
+        status, _ = imap.select(folder, readonly=True)
         if status != "OK":
+            logger.warning(f"Could not select folder {folder}")
+            return messages
+
+        status, data = imap.search(None, "ALL")
+        if status != "OK" or not data[0]:
             return messages
 
         mail_ids = data[0].split()
         if not mail_ids:
             return messages
 
-        # Get latest emails
         latest_ids = mail_ids[-limit:]
-        latest_ids.reverse()  # newest first
+        latest_ids.reverse()
 
         for mail_id in latest_ids:
             try:
@@ -239,7 +226,6 @@ async def fetch_emails(
                 raw_email = msg_data[0][1]
                 msg = email.message_from_bytes(raw_email)
 
-                # Parse flags
                 flags_data = msg_data[0][0].decode() if isinstance(msg_data[0][0], bytes) else str(msg_data[0][0])
                 is_read = "\\Seen" in flags_data
 
@@ -249,8 +235,10 @@ async def fetch_emails(
                 body_html, body_text = _extract_body(msg)
                 has_attach, attach_list = _check_attachments(msg)
 
+                uid_str = mail_id.decode() if isinstance(mail_id, bytes) else str(mail_id)
+
                 messages.append(MailMessage(
-                    uid=mail_id.decode() if isinstance(mail_id, bytes) else str(mail_id),
+                    uid=f"{folder}:{uid_str}",
                     sender=sender_name,
                     sender_email=sender_email_addr,
                     subject=subject,
@@ -261,12 +249,54 @@ async def fetch_emails(
                     is_read=is_read,
                     has_attachments=has_attach,
                     attachments=attach_list,
+                    folder=folder,
                 ))
             except Exception as e:
-                logger.warning(f"Failed to parse email {mail_id}: {e}")
+                logger.warning(f"Failed to parse email {mail_id} in {folder}: {e}")
                 continue
+    except Exception as e:
+        logger.warning(f"Error reading folder {folder}: {e}")
 
-        imap.close()
+    return messages
+
+
+# All folders to fetch: INBOX + Junk/Spam
+_ALL_FOLDERS = ["INBOX", "Junk"]
+
+
+async def fetch_emails(
+    outlook_email: str,
+    refresh_token: str,
+    client_id: str,
+    folder: str = "ALL",
+    limit: int = 50,
+) -> list[MailMessage]:
+    """
+    Fetch emails from ALL folders (INBOX + Junk) in a single IMAP session.
+    Results are merged, sorted by date (newest first), and cached.
+    """
+    cache_key = f"mail_{outlook_email}_ALL_{limit}"
+    if cache_key in _mail_cache:
+        return _mail_cache[cache_key]
+
+    access_token = await get_access_token(refresh_token, client_id)
+    auth_string = _generate_xoauth2_string(outlook_email, access_token)
+
+    all_messages: list[MailMessage] = []
+
+    try:
+        imap = imaplib.IMAP4_SSL("outlook.office365.com", 993)
+        imap.authenticate("XOAUTH2", lambda x: auth_string.encode())
+
+        # Fetch from each folder
+        for fld in _ALL_FOLDERS:
+            folder_msgs = _fetch_folder_messages(imap, fld, limit)
+            all_messages.extend(folder_msgs)
+
+        try:
+            imap.close()
+        except Exception:
+            pass
         imap.logout()
 
     except imaplib.IMAP4.error as e:
@@ -276,8 +306,14 @@ async def fetch_emails(
         logger.error(f"Unexpected error fetching mail for {outlook_email}: {e}")
         raise
 
-    _mail_cache[cache_key] = messages
-    return messages
+    # Sort all messages by date (newest first)
+    all_messages.sort(key=lambda m: m.date_iso or "", reverse=True)
+
+    # Trim to limit
+    all_messages = all_messages[:limit]
+
+    _mail_cache[cache_key] = all_messages
+    return all_messages
 
 
 async def fetch_single_email(
@@ -287,9 +323,17 @@ async def fetch_single_email(
     uid: str,
     folder: str = "INBOX",
 ) -> MailMessage | None:
-    """Fetch a single email by UID."""
+    """Fetch a single email by UID. UID format is 'FOLDER:id'."""
+    # Parse folder:uid format
+    if ":" in uid:
+        parts = uid.split(":", 1)
+        folder = parts[0]
+        raw_uid = parts[1]
+    else:
+        raw_uid = uid
+
     # First check cache
-    cache_key = f"mail_{outlook_email}_{folder}_50"
+    cache_key = f"mail_{outlook_email}_ALL_50"
     if cache_key in _mail_cache:
         for msg in _mail_cache[cache_key]:
             if msg.uid == uid:
@@ -303,7 +347,8 @@ async def fetch_single_email(
         imap.authenticate("XOAUTH2", lambda x: auth_string.encode())
         imap.select(folder, readonly=True)
 
-        status, msg_data = imap.fetch(uid.encode() if isinstance(uid, str) else uid, "(RFC822 FLAGS)")
+        fetch_uid = raw_uid.encode() if isinstance(raw_uid, str) else raw_uid
+        status, msg_data = imap.fetch(fetch_uid, "(RFC822 FLAGS)")
         if status != "OK" or not msg_data or not msg_data[0]:
             return None
 
@@ -319,7 +364,10 @@ async def fetch_single_email(
         body_html, body_text = _extract_body(msg)
         has_attach, attach_list = _check_attachments(msg)
 
-        imap.close()
+        try:
+            imap.close()
+        except Exception:
+            pass
         imap.logout()
 
         return MailMessage(
@@ -334,6 +382,7 @@ async def fetch_single_email(
             is_read=is_read,
             has_attachments=has_attach,
             attachments=attach_list,
+            folder=folder,
         )
     except Exception as e:
         logger.error(f"Error fetching email {uid}: {e}")

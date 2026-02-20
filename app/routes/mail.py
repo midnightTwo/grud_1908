@@ -20,6 +20,7 @@ class MailListItem(BaseModel):
     is_read: bool
     has_attachments: bool
     preview: str  # first ~100 chars of body_text
+    folder: str = "INBOX"
 
 
 class MailDetail(BaseModel):
@@ -34,6 +35,7 @@ class MailDetail(BaseModel):
     is_read: bool
     has_attachments: bool
     attachments: list[str]
+    folder: str = "INBOX"
 
 
 async def _get_outlook_account(user: User, db: AsyncSession) -> OutlookAccount:
@@ -63,7 +65,7 @@ async def get_inbox(
             outlook_email=account.outlook_email,
             refresh_token=account.refresh_token,
             client_id=account.client_id,
-            folder="INBOX",
+            folder="ALL",
             limit=min(limit, 100),
         )
     except Exception as e:
@@ -80,6 +82,7 @@ async def get_inbox(
             is_read=msg.is_read,
             has_attachments=msg.has_attachments,
             preview=msg.body_text[:120].replace("\n", " ") if msg.body_text else "",
+            folder=msg.folder,
         )
         for msg in messages
     ]
@@ -118,6 +121,7 @@ async def get_message(
         is_read=msg.is_read,
         has_attachments=msg.has_attachments,
         attachments=msg.attachments,
+        folder=msg.folder,
     )
 
 

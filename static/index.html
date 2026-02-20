@@ -128,10 +128,13 @@
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
                     </svg>
-                    <span>Inbox</span>
+                    <span>All Mail</span>
                     <span id="unread-count" class="ml-auto bg-brand-600 text-white text-xs rounded-full px-2 py-0.5 font-semibold hidden">0</span>
                 </a>
             </nav>
+            <div class="mt-6 px-3">
+                <p class="text-xs text-zinc-600">Inbox + Spam combined</p>
+            </div>
         </aside>
 
         <!-- Email List -->
@@ -348,7 +351,10 @@ function renderEmailList(emailList) {
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center justify-between gap-2">
                         <span class="text-sm ${!mail.is_read ? 'text-white' : 'text-zinc-400'} truncate">${escapeHtml(mail.sender)}</span>
-                        <span class="text-xs text-zinc-600 flex-shrink-0 whitespace-nowrap">${formatDate(mail.date)}</span>
+                        <div class="flex items-center gap-1.5 flex-shrink-0">
+                            ${mail.folder === 'Junk' ? '<span class="text-[10px] bg-orange-500/15 text-orange-400 px-1.5 py-0.5 rounded font-medium border border-orange-500/20">Spam</span>' : ''}
+                            <span class="text-xs text-zinc-600 whitespace-nowrap">${formatDate(mail.date)}</span>
+                        </div>
                     </div>
                     <div class="text-sm ${!mail.is_read ? 'text-zinc-200' : 'text-zinc-500'} truncate mt-0.5">${escapeHtml(mail.subject)}</div>
                     <div class="text-xs text-zinc-600 truncate mt-0.5">${escapeHtml(mail.preview)}</div>
